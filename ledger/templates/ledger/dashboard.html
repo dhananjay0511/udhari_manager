@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Udhari{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="bi bi-people"></i></div>
+      <div>
+        <div class="stat-label">People</div>
+        <div class="stat-value">{{ total_persons }}</div>
+        <div class="stat-sub">Tracked contacts</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="bi bi-arrow-up-right-circle"></i></div>
+      <div>
+        <div class="stat-label">Total Given</div>
+        <div class="stat-value">₹{{ total_given|floatformat:0 }}</div>
+        <div class="stat-sub">Money lent out</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-arrow-down-right-circle"></i></div>
+      <div>
+        <div class="stat-label">Total Received</div>
+        <div class="stat-value">₹{{ total_received|floatformat:0 }}</div>
+        <div class="stat-sub">Money recovered</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="bi bi-clock-history"></i></div>
+      <div>
+        <div class="stat-label">Outstanding</div>
+        <div class="stat-value">₹{{ net_outstanding|floatformat:0 }}</div>
+        <div class="stat-sub">Still to recover</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-12 col-md-4">
+      <label class="form-label">🔍 Search</label>
+      <input type="text" name="search" class="form-control" placeholder="Name or phone number…" value="{{ search }}">
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label">Filter</label>
+      <select name="filter" class="form-select">
+        <option value="" {% if not filter_type %}selected{% endif %}>All People</option>
+        <option value="has_due" {% if filter_type == "has_due" %}selected{% endif %}>Has Due Date</option>
+        <option value="overdue" {% if filter_type == "overdue" %}selected{% endif %}>⚠️ Overdue</option>
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label">Sort By</label>
+      <select name="sort" class="form-select">
+        <option value="name" {% if sort == "name" %}selected{% endif %}>Name A→Z</option>
+        <option value="balance" {% if sort == "balance" %}selected{% endif %}>Balance (High→Low)</option>
+        <option value="due_date" {% if sort == "due_date" %}selected{% endif %}>Due Date (Soonest)</option>
+      </select>
+    </div>
+    <div class="col-12 col-md-2">
+      <button type="submit" class="btn btn-primary w-100">Apply</button>
+    </div>
+  </form>
+</div>
+
+{% if filter_type or search %}
+<div class="d-flex align-items-center gap-2 mb-3">
+  <span class="text-muted small">
+    Showing {{ persons|length }} result{% if persons|length != 1 %}s{% endif %}
+    {% if search %}for "<strong>{{ search }}</strong>"{% endif %}
+    {% if filter_type %}— filtered: <strong>{{ filter_type }}</strong>{% endif %}
+  </span>
+  <a href="/" class="btn btn-sm btn-outline-secondary">Clear</a>
+</div>
+{% endif %}
+
+<!-- People Table -->
+<div class="card">
+  <div class="card-header">
+    <h6><i class="bi bi-people me-2"></i>People</h6>
+    <a href="{% url 'ledger:person_add' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus"></i> Add Person
+    </a>
+  </div>
+  {% if persons %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Person</th>
+          <th>Phone</th>
+          <th style="text-align:right">Balance</th>
+          <th>Status</th>
+          <th>Due Date</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in persons %}
+        <tr>
+          <td>
+            <a href="{% url 'ledger:person_detail' p.pk %}" class="row-link fw-600">
+              <div style="font-weight:600;">{{ p.name }}</div>
+              {% if p.notes %}<div style="font-size:0.75rem;color:var(--gray-400);">{{ p.notes|truncatechars:35 }}</div>{% endif %}
+            </a>
+          </td>
+          <td style="color:var(--gray-400);">{{ p.phone|default:"—" }}</td>
+          <td style="text-align:right;">
+            {% if p.balance > 0 %}
+              <span class="badge-amount positive">₹{{ p.balance|floatformat:2 }}</span>
+            {% elif p.balance < 0 %}
+              <span class="badge-amount negative">₹{{ p.balance|floatformat:2 }}</span>
+            {% else %}
+              <span class="badge-amount zero">₹0</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.balance > 0 %}
+              <span style="font-size:0.78rem;color:var(--success);font-weight:600;">↑ Owes You</span>
+            {% elif p.balance < 0 %}
+              <span style="font-size:0.78rem;color:var(--danger);font-weight:600;">↓ You Owe</span>
+            {% else %}
+              <span style="font-size:0.78rem;color:var(--gray-400);">✓ Settled</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.nearest_due %}
+              {% if p.nearest_due < today and p.balance > 0 %}
+                <span class="badge-overdue"><i class="bi bi-exclamation-triangle"></i> {{ p.nearest_due }}</span>
+              {% else %}
+                <span style="font-size:0.82rem;color:var(--warning);">📅 {{ p.nearest_due }}</span>
+              {% endif %}
+            {% else %}
+              <span style="color:var(--gray-400);">—</span>
+            {% endif %}
+          </td>
+          <td style="text-align:right;">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'ledger:tx_add' %}?person={{ p.pk }}" class="btn-icon" title="Add transaction">
+                <i class="bi bi-plus-lg"></i>
+              </a>
+              <a href="{% url 'ledger:person_detail' p.pk %}" class="btn-icon" title="View">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{% url 'ledger:person_edit' p.pk %}" class="btn-icon warning" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'ledger:person_delete' p.pk %}" class="btn-icon danger" title="Delete">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div><i class="bi bi-people"></i></div>
+    <p>No people yet. <a href="{% url 'ledger:person_add' %}">Add your first person</a> to get started.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load form_tags %}
+{% block title %}{{ title }} — Udhari{% endblock %}
+{% block topbar_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h2>{{ title }}</h2></div>
+  {% if person %}
+  <a href="{% url 'ledger:person_detail' person.pk %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back
+  </a>
+  {% elif tx %}
+  <a href="{% url 'ledger:person_detail' tx.person.pk %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back
+  </a>
+  {% else %}
+  <a href="{% url 'ledger:dashboard' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back
+  </a>
+  {% endif %}
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-6">
+
+    {% if person %}
+    <div class="alert-banner success mb-3">
+      <span class="icon">👤</span>
+      <span>Adding transaction for: <strong>{{ person.name }}</strong></span>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-body">
+        <form method="post" novalidate id="txForm">
+          {% csrf_token %}
+
+          {% if not person %}
+          <div class="mb-3">
+            <label class="form-label">Person <span style="color:var(--danger)">*</span></label>
+            {{ form.person|add_class:"form-select" }}
+            {% if form.person.errors %}<div class="invalid-feedback d-block">{{ form.person.errors|join:", " }}</div>{% endif %}
+          </div>
+          {% else %}
+            {{ form.person }}
+          {% endif %}
+
+          <!-- Visual Type Toggle -->
+          <div class="mb-4">
+            <label class="form-label">Transaction Type <span style="color:var(--danger)">*</span></label>
+            <div class="d-flex gap-2">
+              <label class="flex-fill" style="cursor:pointer;" id="label_given">
+                <input type="radio" name="type" value="GIVEN"
+                       {% if form.type.value == 'GIVEN' or not form.type.value %}checked{% endif %}
+                       style="display:none;" onchange="updateTypeStyle()">
+                <div style="border:2px solid #dc2626;border-radius:10px;padding:16px;text-align:center;background:#fee2e2;transition:all 0.2s;" id="btn_given">
+                  <div style="font-size:1.4rem;margin-bottom:4px;">↑</div>
+                  <div style="font-weight:700;color:#b91c1c;font-size:0.95rem;">Given</div>
+                  <div style="font-size:0.72rem;color:#dc2626;margin-top:2px;">You lent money</div>
+                </div>
+              </label>
+              <label class="flex-fill" style="cursor:pointer;" id="label_received">
+                <input type="radio" name="type" value="RECEIVED"
+                       {% if form.type.value == 'RECEIVED' %}checked{% endif %}
+                       style="display:none;" onchange="updateTypeStyle()">
+                <div style="border:2px solid var(--gray-200);border-radius:10px;padding:16px;text-align:center;background:var(--gray-50);transition:all 0.2s;" id="btn_received">
+                  <div style="font-size:1.4rem;margin-bottom:4px;">↓</div>
+                  <div style="font-weight:700;color:var(--gray-600);font-size:0.95rem;">Received</div>
+                  <div style="font-size:0.72rem;color:var(--gray-400);margin-top:2px;">You got money back</div>
+                </div>
+              </label>
+            </div>
+            {% if form.type.errors %}<div class="invalid-feedback d-block mt-1">{{ form.type.errors|join:", " }}</div>{% endif %}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Amount (₹) <span style="color:var(--danger)">*</span></label>
+              {{ form.amount|add_class:"form-control" }}
+              {% if form.amount.errors %}<div class="invalid-feedback d-block">{{ form.amount.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Date <span style="color:var(--danger)">*</span></label>
+              {{ form.date|add_class:"form-control" }}
+              {% if form.date.errors %}<div class="invalid-feedback d-block">{{ form.date.errors|join:", " }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">
+              Due Date <span style="color:var(--gray-400);font-weight:400;">(optional)</span>
+            </label>
+            {{ form.due_date|add_class:"form-control" }}
+            {% if form.due_date.errors %}<div class="invalid-feedback d-block">{{ form.due_date.errors|join:", " }}</div>{% endif %}
+            <div class="form-text">Set a repayment reminder date</div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label">
+              Description <span style="color:var(--gray-400);font-weight:400;">(optional)</span>
+            </label>
+            {{ form.description|add_class:"form-control" }}
+          </div>
+
+          {% if form.non_field_errors %}
+          <div class="alert-banner danger mb-3"><span>{{ form.non_field_errors|join:", " }}</span></div>
+          {% endif %}
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-check-lg"></i> Save Transaction
+            </button>
+            {% if person %}
+            <a href="{% url 'ledger:person_detail' person.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            {% elif tx %}
+            <a href="{% url 'ledger:person_detail' tx.person.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            {% else %}
+            <a href="{% url 'ledger:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+function updateTypeStyle() {
+  const givenChecked = document.querySelector('input[value="GIVEN"]').checked;
+  const bg = document.getElementById('btn_given');
+  const br = document.getElementById('btn_received');
+  if (givenChecked) {
+    bg.style.borderColor = '#dc2626'; bg.style.background = '#fee2e2';
+    br.style.borderColor = 'var(--gray-200)'; br.style.background = 'var(--gray-50)';
+    br.querySelector('div:nth-child(2)').style.color = 'var(--gray-600)';
+  } else {
+    br.style.borderColor = 'var(--success)'; br.style.background = 'var(--success-light)';
+    br.querySelector('div:nth-child(2)').style.color = 'var(--success)';
+    bg.style.borderColor = 'var(--gray-200)'; bg.style.background = 'var(--gray-50)';
+    bg.querySelector('div:nth-child(2)').style.color = 'var(--gray-600)';
+  }
+}
+document.addEventListener('DOMContentLoaded', updateTypeStyle);
+{% endblock %}

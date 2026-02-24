@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load form_tags %}
+{% block title %}Login — Udhari{% endblock %}
+{% block auth_content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-icon">💰</div>
+      <h3>Welcome Back</h3>
+      <p>Sign in to your Udhari account</p>
+    </div>
+    <div class="auth-body">
+      {% for message in messages %}
+      <div class="alert-banner {% if 'error' in message.tags %}danger{% else %}success{% endif %} mb-3">
+        <span>{{ message }}</span>
+      </div>
+      {% endfor %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+          {{ field|add_class:"form-control" }}
+          {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        {% if form.non_field_errors %}
+        <div class="alert-banner danger mb-3"><span>{{ form.non_field_errors|join:", " }}</span></div>
+        {% endif %}
+        <button type="submit" class="btn btn-primary w-100" style="padding:10px;">
+          <i class="bi bi-box-arrow-in-right"></i> Sign In
+        </button>
+      </form>
+    </div>
+    <div class="auth-footer">
+      Don't have an account? <a href="{% url 'accounts:register' %}">Create one free</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

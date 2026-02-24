@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ person.name }} — Udhari{% endblock %}
+{% block topbar_title %}Delete Person{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card" style="border:2px solid var(--danger-light);">
+      <div class="card-header" style="background:var(--danger-light);border-bottom:1px solid #fca5a5;">
+        <h6 style="color:var(--danger);margin:0;"><i class="bi bi-exclamation-triangle me-2"></i>Confirm Delete</h6>
+      </div>
+      <div class="card-body">
+        <p style="font-size:1rem;">Delete <strong>{{ person.name }}</strong>?</p>
+        <p style="color:var(--danger);font-size:0.85rem;">
+          ⚠️ This will also permanently delete all their transactions. This cannot be undone.
+        </p>
+        <form method="post">
+          {% csrf_token %}
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-danger px-4">Yes, Delete</button>
+            <a href="{% url 'ledger:person_detail' person.pk %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

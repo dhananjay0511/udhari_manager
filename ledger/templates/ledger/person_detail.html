@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}{{ person.name }} — Udhari{% endblock %}
+{% block topbar_title %}{{ person.name }}{% endblock %}
+
+{% block content %}
+
+<!-- Person Header Card -->
+<div class="person-header mb-4">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <div class="person-avatar">{{ person.name|first|upper }}</div>
+      <h2>{{ person.name }}</h2>
+      <div class="meta">
+        {% if person.phone %}<span><i class="bi bi-telephone"></i> {{ person.phone }}</span>{% endif %}
+        {% if person.phone and person.notes %} &nbsp;·&nbsp; {% endif %}
+        {% if person.notes %}<span>{{ person.notes|truncatechars:60 }}</span>{% endif %}
+        {% if not person.phone and not person.notes %}<span>No contact info</span>{% endif %}
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'ledger:tx_add' %}?person={{ person.pk }}" class="btn btn-sm btn-light">
+        <i class="bi bi-plus-circle"></i> Add Transaction
+      </a>
+      <a href="{% url 'ledger:person_edit' person.pk %}" class="btn btn-sm btn-light">
+        <i class="bi bi-pencil"></i> Edit
+      </a>
+      <a href="{% url 'ledger:person_delete' person.pk %}" class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:#fff;border:none;">
+        <i class="bi bi-trash"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Overdue Alert -->
+{% if is_overdue %}
+<div class="alert-banner danger mb-4">
+  <span class="icon">🚨</span>
+  <div>
+    <strong>Overdue!</strong> This person has past-due transactions and still owes you money.
+    {% for otx in overdue_txs %}
+    <br><span style="font-size:0.82rem;">• ₹{{ otx.amount }} was due on {{ otx.due_date }}{% if otx.description %} — {{ otx.description }}{% endif %}</span>
+    {% endfor %}
+  </div>
+</div>
+{% elif upcoming_due %}
+<div class="alert-banner warning mb-4">
+  <span class="icon">📅</span>
+  <div>
+    <strong>Upcoming Due:</strong> ₹{{ upcoming_due.amount }} due on <strong>{{ upcoming_due.due_date }}</strong>
+    {% if upcoming_due.description %} — {{ upcoming_due.description }}{% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Summary Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="bi bi-arrow-up-right-circle"></i></div>
+      <div>
+        <div class="stat-label">Total Given</div>
+        <div class="stat-value" style="font-size:1.3rem;">₹{{ total_given|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-arrow-down-right-circle"></i></div>
+      <div>
+        <div class="stat-label">Total Received</div>
+        <div class="stat-value" style="font-size:1.3rem;">₹{{ total_received|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="bi bi-wallet2"></i></div>
+      <div>
+        <div class="stat-label">Net Balance</div>
+        <div class="stat-value" style="font-size:1.3rem;">
+          {% if balance > 0 %}
+            <span style="color:var(--success)">₹{{ balance|floatformat:2 }}</span>
+          {% elif balance < 0 %}
+            <span style="color:var(--danger)">₹{{ balance|floatformat:2 }}</span>
+          {% else %}
+            <span style="color:var(--gray-400)">₹0.00</span>
+          {% endif %}
+        </div>
+        <div class="stat-sub">
+          {% if balance > 0 %}Owes You{% elif balance < 0 %}You Owe Them{% else %}All Settled{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="card">
+  <div class="card-header">
+    <h6><i class="bi bi-arrow-left-right me-2"></i>Transaction History</h6>
+    <a href="{% url 'ledger:tx_add' %}?person={{ person.pk }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus"></i> Add
+    </a>
+  </div>
+  {% if page_obj %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th style="text-align:right">Amount</th>
+          <th>Due Date</th>
+          <th>Description</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in page_obj %}
+        <tr>
+          <td style="font-size:0.83rem;color:var(--gray-600);">{{ tx.date|date:"d M Y" }}</td>
+          <td>
+            {% if tx.type == "GIVEN" %}
+              <span class="badge-type given"><i class="bi bi-arrow-up-right"></i> Given</span>
+            {% else %}
+              <span class="badge-type received"><i class="bi bi-arrow-down-left"></i> Received</span>
+            {% endif %}
+          </td>
+          <td style="text-align:right;font-weight:700;">₹{{ tx.amount|floatformat:2 }}</td>
+          <td>
+            {% if tx.due_date %}
+              {% if tx.due_date < today and balance > 0 %}
+                <span class="badge-overdue">{{ tx.due_date|date:"d M Y" }}</span>
+              {% else %}
+                <span style="font-size:0.82rem;">{{ tx.due_date|date:"d M Y" }}</span>
+              {% endif %}
+            {% else %}
+              <span style="color:var(--gray-400);">—</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--gray-400);font-size:0.82rem;max-width:160px;">
+            {{ tx.description|truncatechars:45|default:"—" }}
+          </td>
+          <td style="text-align:right;">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'ledger:tx_edit' tx.pk %}" class="btn-icon warning" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'ledger:tx_delete' tx.pk %}" class="btn-icon danger" title="Delete">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page_obj.has_other_pages %}
+  <div class="card-footer" style="padding:12px 20px;background:var(--gray-50);">
+    <nav>
+      <ul class="pagination pagination-sm mb-0 justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a></li>
+        {% endif %}
+        <li class="page-item disabled">
+          <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty-state">
+    <div><i class="bi bi-arrow-left-right"></i></div>
+    <p>No transactions yet. <a href="{% url 'ledger:tx_add' %}?person={{ person.pk }}">Add the first one</a>.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

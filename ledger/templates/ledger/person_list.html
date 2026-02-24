@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}All People — Udhari{% endblock %}
+{% block nav_people %}active{% endblock %}
+{% block topbar_title %}All People{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2>All People</h2>
+    <p>{{ persons|length }} contact{% if persons|length != 1 %}s{% endif %} in your ledger</p>
+  </div>
+  <a href="{% url 'ledger:person_add' %}" class="btn btn-primary">
+    <i class="bi bi-person-plus"></i> Add Person
+  </a>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Person</th>
+          <th>Phone</th>
+          <th style="text-align:right">Opening Bal.</th>
+          <th style="text-align:right">Net Balance</th>
+          <th>Added</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in persons %}
+        <tr>
+          <td>
+            <a href="{% url 'ledger:person_detail' p.pk %}" class="row-link">
+              <div style="font-weight:600;">{{ p.name }}</div>
+              {% if p.notes %}<div style="font-size:0.75rem;color:var(--gray-400);">{{ p.notes|truncatechars:40 }}</div>{% endif %}
+            </a>
+          </td>
+          <td style="color:var(--gray-400);">{{ p.phone|default:"—" }}</td>
+          <td style="text-align:right;color:var(--gray-400);">₹{{ p.opening_balance }}</td>
+          <td style="text-align:right;">
+            {% if p.balance > 0 %}
+              <span class="badge-amount positive">₹{{ p.balance|floatformat:2 }}</span>
+            {% elif p.balance < 0 %}
+              <span class="badge-amount negative">₹{{ p.balance|floatformat:2 }}</span>
+            {% else %}
+              <span class="badge-amount zero">₹0</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--gray-400);font-size:0.82rem;">{{ p.created_at|date:"d M Y" }}</td>
+          <td style="text-align:right;">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'ledger:tx_add' %}?person={{ p.pk }}" class="btn-icon" title="Add Tx"><i class="bi bi-plus-lg"></i></a>
+              <a href="{% url 'ledger:person_detail' p.pk %}" class="btn-icon" title="View"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'ledger:person_edit' p.pk %}" class="btn-icon warning" title="Edit"><i class="bi bi-pencil"></i></a>
+              <a href="{% url 'ledger:person_delete' p.pk %}" class="btn-icon danger" title="Delete"><i class="bi bi-trash"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state"><i class="bi bi-people"></i><p>No people yet.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Udhari Ledger{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/css/style.css" rel="stylesheet">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<div class="app-wrapper">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">💰</div>
+      <div class="brand-name">Udhari</div>
+      <div class="brand-tagline">Credit Ledger Manager</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="{% url 'ledger:dashboard' %}" class="nav-link {% block nav_dashboard %}{% endblock %}">
+        <i class="bi bi-grid-1x2"></i> Dashboard
+      </a>
+
+      <div class="nav-section-label mt-2">People</div>
+      <a href="{% url 'ledger:person_list' %}" class="nav-link {% block nav_people %}{% endblock %}">
+        <i class="bi bi-people"></i> All People
+      </a>
+      <a href="{% url 'ledger:person_add' %}" class="nav-link {% block nav_add_person %}{% endblock %}">
+        <i class="bi bi-person-plus"></i> Add Person
+      </a>
+
+      <div class="nav-section-label mt-2">Transactions</div>
+      <a href="{% url 'ledger:tx_add' %}" class="nav-link {% block nav_add_tx %}{% endblock %}">
+        <i class="bi bi-plus-circle"></i> Add Transaction
+      </a>
+      <a href="{% url 'ledger:dashboard' %}?filter=overdue" class="nav-link">
+        <i class="bi bi-exclamation-circle"></i> Overdue
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar">{{ user.username|first|upper }}</div>
+        <div>
+          <div class="user-name">{{ user.username }}</div>
+          <div class="user-role">{{ user.email|truncatechars:22 }}</div>
+        </div>
+      </div>
+      <form method="post" action="{% url 'accounts:logout' %}" class="mt-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm w-100" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:none;">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="topbar">
+      <div class="d-flex align-items-center gap-3">
+        <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+          <i class="bi bi-list"></i>
+        </button>
+        <div class="topbar-title">{% block topbar_title %}Udhari Ledger{% endblock %}</div>
+      </div>
+      <div class="topbar-actions">
+        <a href="{% url 'ledger:person_add' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-person-plus"></i> <span class="d-none d-md-inline">Add Person</span>
+        </a>
+        <a href="{% url 'ledger:tx_add' %}" class="btn btn-sm" style="background:var(--success-light);color:var(--success);border:1px solid #a7f3d0;">
+          <i class="bi bi-plus-circle"></i> <span class="d-none d-md-inline">Add Tx</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="page-body">
+      {% for message in messages %}
+      <div class="alert-banner {% if 'error' in message.tags %}danger{% elif 'warning' in message.tags %}warning{% else %}success{% endif %} mb-4" role="alert">
+        <span class="icon">
+          {% if 'error' in message.tags %}⚠️{% elif 'warning' in message.tags %}⚡{% else %}✅{% endif %}
+        </span>
+        <span>{{ message }}</span>
+      </div>
+      {% endfor %}
+
+      {% block content %}{% endblock %}
+    </div>
+
+    <footer style="text-align:center;padding:16px;color:var(--gray-400);font-size:0.78rem;border-top:1px solid var(--gray-200);">
+      &copy; {% now "Y" %} Udhari Ledger — Built with Django &amp; ❤️
+    </footer>
+  </div>
+
+</div>
+<!-- Mobile sidebar overlay -->
+<div id="sidebar-overlay" onclick="toggleSidebar()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;"></div>
+
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function toggleSidebar() {
+  const s = document.getElementById('sidebar');
+  const o = document.getElementById('sidebar-overlay');
+  s.classList.toggle('open');
+  o.style.display = s.classList.contains('open') ? 'block' : 'none';
+}
+{% block extra_js %}{% endblock %}
+</script>
+</body>
+</html>
