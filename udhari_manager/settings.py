@@ -14,9 +14,11 @@ SECRET_KEY = os.environ.get(
     "django-insecure-change-this-in-production-use-a-strong-random-key"
 )
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
+# DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
+DEBUG = False
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+# ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     "django.contrib.admin",
